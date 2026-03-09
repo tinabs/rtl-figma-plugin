@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Qalb</title>
+  <style>
+    /* ── Reset & base ─────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 13px;
+      color: #1e1e1e;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Header ───────────────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-bottom: 1px solid #e5e5e5;
+      background: #fff;
+    }
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      font-size: 14px;
+      color: #1e1e1e;
+    }
+    .header-title .arabic {
+      color: #7c3aed;
+      font-size: 16px;
+    }
+    .header-title .icon { font-size: 16px; }
+    .settings-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 2px 4px;
+      border-radius: 4px;
+      color: #666;
+      transition: background 0.15s;
+    }
+    .settings-btn:hover { background: #f0f0f0; }
+
+    /* ── Tab bar ──────────────────────────────────────────────── */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #e5e5e5;
+    }
+    .tab {
+      flex: 1;
+      padding: 9px 0;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 500;
+      color: #666;
+      cursor: pointer;
+      border: none;
+      background: none;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab:hover { color: #1e1e1e; }
+    .tab.active {
+      color: #7c3aed;
+      border-bottom-color: #7c3aed;
+    }
+
+    /* ── Panel content ────────────────────────────────────────── */
+    .panel {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .panel.active { display: flex; }
+
+    /* ── Selection info ───────────────────────────────────────── */
+    .selection-info {
+      font-size: 11px;
+      color: #888;
+      background: #f7f7f7;
+      border-radius: 6px;
+      padding: 7px 10px;
+    }
+    .selection-info strong { color: #1e1e1e; }
+
+    /* ── Buttons ──────────────────────────────────────────────── */
+    .btn {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: opacity 0.15s, background 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+    }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary {
+      background: #7c3aed;
+      color: #fff;
+    }
+    .btn-primary:hover:not(:disabled) { background: #6d28d9; }
+    .btn-secondary {
+      background: #f0ebff;
+      color: #7c3aed;
+    }
+    .btn-secondary:hover:not(:disabled) { background: #e4d9ff; }
+    .btn-outline {
+      background: #fff;
+      color: #1e1e1e;
+      border: 1px solid #d1d5db;
+    }
+    .btn-outline:hover:not(:disabled) { background: #f7f7f7; }
+
+    /* ── Divider ──────────────────────────────────────────────── */
+    .divider {
+      height: 1px;
+      background: #e5e5e5;
+      margin: 2px 0;
+    }
+
+    /* ── Toggle row ───────────────────────────────────────────── */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0;
+    }
+    .toggle-label {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .toggle-label span { font-size: 12px; color: #1e1e1e; font-weight: 500; }
+    .toggle-label small { font-size: 11px; color: #888; }
+
+    /* Toggle switch */
+    .toggle {
+      position: relative;
+      display: inline-block;
+      width: 36px;
+      height: 20px;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: #d1d5db;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toggle-slider::before {
+      content: "";
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      left: 3px;
+      top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .toggle input:checked + .toggle-slider { background: #7c3aed; }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(16px); }
+
+    /* ── Lock section ─────────────────────────────────────────── */
+    .lock-section {
+      background: #f7f7f7;
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .lock-layer-name {
+      font-size: 11px;
+      color: #666;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .lock-layer-name strong { color: #1e1e1e; }
+    .lock-buttons { display: flex; gap: 8px; }
+    .lock-buttons .btn { font-size: 12px; padding: 7px 10px; }
+
+    /* ── Settings panel ───────────────────────────────────────── */
+    .settings-group { display: flex; flex-direction: column; gap: 10px; }
+    .settings-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 2px;
+    }
+    .radio-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      cursor: pointer;
+    }
+    .radio-option input { accent-color: #7c3aed; cursor: pointer; }
+    .about-box {
+      background: #f7f7f7;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 11px;
+      color: #666;
+      line-height: 1.6;
+    }
+    .about-box a { color: #7c3aed; text-decoration: none; }
+
+    /* ── Progress bar ─────────────────────────────────────────── */
+    .progress-wrap {
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .progress-wrap.visible { display: flex; }
+    .progress-bar-track {
+      height: 4px;
+      background: #e5e5e5;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: #7c3aed;
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.2s;
+    }
+    .progress-text { font-size: 11px; color: #888; }
+
+    /* ── Status bar ───────────────────────────────────────────── */
+    .status-bar {
+      padding: 8px 14px;
+      border-top: 1px solid #e5e5e5;
+      font-size: 11px;
+      color: #666;
+      min-height: 32px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .status-bar.success { color: #059669; }
+    .status-bar.error { color: #dc2626; }
+    .status-bar.warn { color: #d97706; }
+    .status-bar.info { color: #7c3aed; }
+
+    /* Fonts tab */
+    .font-list { display: flex; flex-direction: column; gap: 8px; }
+    .font-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #f7f7f7;
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+    .font-row-label { flex: 1; font-size: 12px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .font-row-arrow { color: #888; font-size: 14px; }
+    .font-row select {
+      flex: 1;
+      font-size: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 4px 8px;
+      background: #fff;
+      color: #1e1e1e;
+      cursor: pointer;
+    }
+    .empty-state {
+      text-align: center;
+      color: #888;
+      font-size: 12px;
+      padding: 20px 0;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-title">
+      <span class="icon">🔄</span>
+      <span>Qalb</span>
+      <span class="arabic">قلب</span>
+    </div>
+    <button class="settings-btn" id="settingsBtn" title="Settings">⚙️</button>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tabs" id="tabBar">
+    <button class="tab active" data-tab="mirror">Mirror</button>
+    <button class="tab" data-tab="fonts">Fonts</button>
+    <button class="tab" data-tab="settings" id="settingsTab" style="display:none">Settings</button>
+  </div>
+
+  <!-- ── Mirror tab ──────────────────────────────────────────── -->
+  <div class="panel active" id="panel-mirror">
+
+    <div class="selection-info" id="selectionInfo">
+      Select one or more frames to get started.
+    </div>
+
+    <button class="btn btn-primary" id="mirrorBtn" disabled>
+      🔄 Mirror &amp; Translate to AR
+    </button>
+
+    <button class="btn btn-secondary" id="variantBtn" disabled>
+      ✨ Create RTL Variant
+    </button>
+
+    <!-- Progress -->
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="progressFill"></div>
+      </div>
+      <div class="progress-text" id="progressText">Translating…</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Numeral toggle -->
+    <div class="toggle-row">
+      <div class="toggle-label">
+        <span>Arabic Numerals ١٢٣</span>
+        <small>Convert numbers to Eastern Arabic</small>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="numeralToggle" />
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Lock from flip -->
+    <div class="lock-section">
+      <div class="lock-layer-name" id="lockLayerName">
+        No layer selected
+      </div>
+      <div class="lock-buttons">
+        <button class="btn btn-outline" id="lockBtn" disabled>🔒 Lock from Flip</button>
+        <button class="btn btn-outline" id="unlockBtn" disabled>🔓 Unlock</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Fonts tab ───────────────────────────────────────────── -->
+  <div class="panel" id="panel-fonts">
+    <div class="selection-info" id="fontSelectionInfo">
+      Select a frame then scan for fonts used.
+    </div>
+    <button class="btn btn-outline" id="scanFontsBtn">
+      🔍 Scan fonts in selection
+    </button>
+    <div class="font-list" id="fontList">
+      <div class="empty-state">
+        Scan a selection to see fonts in use.
+      </div>
+    </div>
+    <button class="btn btn-primary" id="applyFontsBtn" disabled>
+      Apply Fonts
+    </button>
+  </div>
+
+  <!-- ── Settings tab ───────────────────────────────────────── -->
+  <div class="panel" id="panel-settings">
+    <div class="settings-group">
+      <div class="settings-label">Default Numeral Format</div>
+      <label class="radio-option">
+        <input type="radio" name="numFormat" value="western" checked />
+        Western &nbsp; <span style="color:#888">123</span>
+      </label>
+      <label class="radio-option">
+        <input type="radio" name="numFormat" value="eastern" />
+        Eastern Arabic &nbsp; <span style="color:#7c3aed">١٢٣</span>
+      </label>
+    </div>
+    <div class="divider"></div>
+    <div class="about-box">
+      <strong>Qalb v1.0</strong><br>
+      Built for GCC bilingual design teams.<br>
+      Translation: MyMemory (free, no key needed)<br>
+      <a href="https://mymemory.translated.net" target="_blank">mymemory.translated.net</a>
+    </div>
+  </div>
+
+  <!-- Status bar -->
+  <div class="status-bar" id="statusBar">Ready</div>
+
+  <script>
+    // ── State ──────────────────────────────────────────────────
+    let selectedNodes = [];
+    let pendingAction = null;
+    let pendingMirroredCount = 0;
+    let scannedNodeIds = []; // nodeIds from last "Scan fonts" call
+
+    const ARABIC_FONTS = [
+      "Cairo",
+      "Almarai",
+      "Tajawal",
+      "Noto Sans Arabic",
+      "IBM Plex Arabic",
+      "Rubik",
+    ];
+
+    // ── Tab switching ──────────────────────────────────────────
+    document.getElementById("tabBar").addEventListener("click", (e) => {
+      const btn = e.target.closest(".tab");
+      if (!btn) return;
+      const tabId = btn.dataset.tab;
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("panel-" + tabId).classList.add("active");
+    });
+
+    // Settings gear button
+    document.getElementById("settingsBtn").addEventListener("click", () => {
+      const settingsTab = document.getElementById("settingsTab");
+      settingsTab.style.display = "block";
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+      settingsTab.classList.add("active");
+      document.getElementById("panel-settings").classList.add("active");
+    });
+
+    // ── Mirror button ──────────────────────────────────────────
+    document.getElementById("mirrorBtn").addEventListener("click", () => {
+      if (!selectedNodes.length) return;
+      setStatus("Mirroring…", "info");
+      setButtonsDisabled(true);
+      parent.postMessage({
+        pluginMessage: {
+          type: "MIRROR_AND_TRANSLATE",
+          nodeIds: selectedNodes.map(n => n.id),
+          convertNumerals: document.getElementById("numeralToggle").checked,
+        }
+      }, "*");
+    });
+
+    // ── Variant button ─────────────────────────────────────────
+    document.getElementById("variantBtn").addEventListener("click", () => {
+      if (!selectedNodes.length) return;
+      setStatus("Creating RTL variant…", "info");
+      setButtonsDisabled(true);
+      parent.postMessage({
+        pluginMessage: {
+          type: "CREATE_VARIANT",
+          nodeId: selectedNodes[0].id,
+          convertNumerals: document.getElementById("numeralToggle").checked,
+        }
+      }, "*");
+    });
+
+    // ── Lock / Unlock buttons ──────────────────────────────────
+    document.getElementById("lockBtn").addEventListener("click", () => {
+      if (!selectedNodes.length) return;
+      parent.postMessage({ pluginMessage: { type: "LOCK_FLIP", nodeId: selectedNodes[0].id } }, "*");
+    });
+
+    document.getElementById("unlockBtn").addEventListener("click", () => {
+      if (!selectedNodes.length) return;
+      parent.postMessage({ pluginMessage: { type: "UNLOCK_FLIP", nodeId: selectedNodes[0].id } }, "*");
+    });
+
+    // ── Font scanning ──────────────────────────────────────────
+    document.getElementById("scanFontsBtn").addEventListener("click", () => {
+      if (!selectedNodes.length) {
+        setStatus("Select a frame first.", "warn");
+        return;
+      }
+      scannedNodeIds = selectedNodes.map(n => n.id);
+      parent.postMessage({
+        pluginMessage: { type: "GET_FONTS", nodeIds: scannedNodeIds }
+      }, "*");
+    });
+
+    document.getElementById("applyFontsBtn").addEventListener("click", () => {
+      const selects = document.querySelectorAll("#fontList select[data-from]");
+      const mappings = Array.from(selects).map(sel => ({
+        from: sel.dataset.from,
+        to: sel.value,
+      }));
+      document.getElementById("applyFontsBtn").disabled = true;
+      parent.postMessage({ pluginMessage: { type: "APPLY_FONTS", nodeIds: scannedNodeIds, mappings } }, "*");
+    });
+
+    // ── Translation via MyMemory API ───────────────────────────
+    async function translateLayer(text, index, total) {
+      // Skip proper nouns (all caps), short codes, placeholders
+      if (/^[A-Z0-9_\s]+$/.test(text.trim()) && text.trim().length <= 10) return text;
+
+      const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|ar`;
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        updateProgress(index + 1, total);
+        return data.responseData?.translatedText || text;
+      } catch {
+        return text; // fallback: keep original
+      }
+    }
+
+    async function translateAllLayers(layers, convertNumerals) {
+      if (!layers.length) {
+        parent.postMessage({ pluginMessage: { type: "APPLY_TRANSLATIONS", translations: [], convertNumerals } }, "*");
+        return;
+      }
+
+      showProgress(true);
+      updateProgress(0, layers.length);
+
+      const translations = [];
+      for (let i = 0; i < layers.length; i++) {
+        const translated = await translateLayer(layers[i].text, i, layers.length);
+        translations.push({ id: layers[i].id, text: translated });
+      }
+
+      showProgress(false);
+      parent.postMessage({ pluginMessage: { type: "APPLY_TRANSLATIONS", translations, convertNumerals } }, "*");
+    }
+
+    // ── Messages from main.ts ──────────────────────────────────
+    window.onmessage = async (event) => {
+      const msg = event.data.pluginMessage;
+      if (!msg) return;
+
+      switch (msg.type) {
+        case "SELECTION": {
+          selectedNodes = msg.nodes;
+          updateSelectionUI();
+          break;
+        }
+
+        case "TEXT_LAYERS": {
+          // main.ts done mirroring — now UI translates
+          pendingAction = msg.action;
+          pendingMirroredCount = msg.mirroredCount;
+          setStatus(`Mirrored ${msg.mirroredCount} layer(s). Translating ${msg.layers.length} text layer(s)…`, "info");
+          await translateAllLayers(msg.layers, msg.convertNumerals);
+          break;
+        }
+
+        case "FONTS_LIST": {
+          renderFontList(msg.fonts);
+          document.getElementById("applyFontsBtn").disabled = msg.fonts.length === 0;
+          break;
+        }
+
+        case "DONE": {
+          setStatus("✅ " + msg.message, "success");
+          setButtonsDisabled(false);
+          // Re-enable Apply Fonts if it was in use
+          const applyFontsBtn = document.getElementById("applyFontsBtn");
+          if (applyFontsBtn) applyFontsBtn.disabled = scannedNodeIds.length === 0;
+          break;
+        }
+
+        case "ERROR": {
+          setStatus("❌ " + msg.message, "error");
+          setButtonsDisabled(false);
+          break;
+        }
+
+        case "WARN": {
+          setStatus("⚠️ " + msg.message, "warn");
+          break;
+        }
+      }
+    };
+
+    // ── UI helpers ─────────────────────────────────────────────
+    function updateSelectionUI() {
+      const count = selectedNodes.length;
+      const info = document.getElementById("selectionInfo");
+      const mirrorBtn = document.getElementById("mirrorBtn");
+      const variantBtn = document.getElementById("variantBtn");
+      const lockBtn = document.getElementById("lockBtn");
+      const unlockBtn = document.getElementById("unlockBtn");
+      const lockLayerName = document.getElementById("lockLayerName");
+      const fontInfo = document.getElementById("fontSelectionInfo");
+
+      if (count === 0) {
+        info.innerHTML = "Select one or more frames to get started.";
+        mirrorBtn.disabled = true;
+        variantBtn.disabled = true;
+        lockBtn.disabled = true;
+        unlockBtn.disabled = true;
+        lockLayerName.textContent = "No layer selected";
+        fontInfo.textContent = "Select a frame then scan for fonts used.";
+      } else {
+        const names = selectedNodes.map(n => `<strong>${n.name}</strong>`).join(", ");
+        info.innerHTML = `Selection: ${names}`;
+        mirrorBtn.disabled = false;
+        variantBtn.disabled = count !== 1 || !["COMPONENT", "COMPONENT_SET"].includes(selectedNodes[0]?.type);
+        lockBtn.disabled = false;
+        unlockBtn.disabled = false;
+        lockLayerName.innerHTML = `Selected: <strong>${selectedNodes[0].name}</strong>`;
+        fontInfo.innerHTML = `Selection: <strong>${selectedNodes.map(n => n.name).join(", ")}</strong>`;
+      }
+    }
+
+    function renderFontList(fonts) {
+      const list = document.getElementById("fontList");
+      if (!fonts.length) {
+        list.innerHTML = `<div class="empty-state">No text layers found in selection.</div>`;
+        return;
+      }
+      list.innerHTML = fonts.map(font => `
+        <div class="font-row">
+          <span class="font-row-label">${font}</span>
+          <span class="font-row-arrow">→</span>
+          <select data-from="${font}">
+            ${ARABIC_FONTS.map(f => `<option value="${f}" ${f === "Cairo" ? "selected" : ""}>${f}</option>`).join("")}
+          </select>
+        </div>
+      `).join("");
+    }
+
+    function setStatus(text, type = "") {
+      const bar = document.getElementById("statusBar");
+      bar.textContent = text;
+      bar.className = "status-bar" + (type ? " " + type : "");
+    }
+
+    function setButtonsDisabled(disabled) {
+      const hasSelection = selectedNodes.length > 0;
+      const isComponent = selectedNodes.length === 1 &&
+        ["COMPONENT", "COMPONENT_SET"].includes(selectedNodes[0]?.type);
+      document.getElementById("mirrorBtn").disabled = disabled || !hasSelection;
+      document.getElementById("variantBtn").disabled = disabled || !isComponent;
+      document.getElementById("lockBtn").disabled = disabled || !hasSelection;
+      document.getElementById("unlockBtn").disabled = disabled || !hasSelection;
+    }
+
+    function showProgress(visible) {
+      document.getElementById("progressWrap").classList.toggle("visible", visible);
+    }
+
+    function updateProgress(done, total) {
+      const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+      document.getElementById("progressFill").style.width = pct + "%";
+      document.getElementById("progressText").textContent = `Translating ${done} / ${total} layers…`;
+    }
+
+    // ── Init: ask for current selection ───────────────────────
+    parent.postMessage({ pluginMessage: { type: "GET_SELECTION" } }, "*");
+  </script>
+</body>
+</html>

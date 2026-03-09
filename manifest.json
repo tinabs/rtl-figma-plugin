@@ -1,0 +1,9 @@
+{
+  "name": "Qalb — RTL for Figma",
+  "id": "qalb-rtl-plugin",
+  "api": "1.0.0",
+  "main": "dist/main.js",
+  "ui": "src/ui.html",
+  "editorType": ["figma"],
+  "permissions": ["currentuser"]
+}

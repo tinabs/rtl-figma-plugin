@@ -1,0 +1,13 @@
+{
+  "name": "qalb-rtl-plugin",
+  "version": "1.0.0",
+  "description": "Figma plugin to convert LTR designs to RTL for GCC bilingual teams",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.90.0",
+    "typescript": "^5.3.3"
+  }
+}

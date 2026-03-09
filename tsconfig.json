@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "target": "ES6",
+    "lib": ["ES6"],
+    "strict": true,
+    "outDir": "./dist"
+  },
+  "include": ["src/**/*.ts"]
+}
