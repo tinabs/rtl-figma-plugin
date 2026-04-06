@@ -4,6 +4,11 @@
   "api": "1.0.0",
   "main": "dist/main.js",
   "ui": "src/ui.html",
+  "documentAccess": "dynamic-page",
   "editorType": ["figma"],
+  "networkAccess": {
+    "allowedDomains": ["https://api.mymemory.translated.net"],
+    "devAllowedDomains": ["https://api.mymemory.translated.net"]
+  },
   "permissions": ["currentuser"]
 }

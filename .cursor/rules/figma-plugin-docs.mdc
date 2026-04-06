@@ -1,0 +1,23 @@
+---
+description: Key Figma Plugin API documentation references for the RTL Figma plugin
+alwaysApply: true
+---
+
+# Figma Plugin Documentation
+
+Always refer to the official Figma Plugin documentation when working on this plugin. These are the authoritative sources for APIs, node types, and manifest configuration.
+
+| Resource | URL |
+|---|---|
+| Main Docs | https://figma.com/plugin-docs/ |
+| API Reference | https://www.figma.com/plugin-docs/api/api-reference |
+| Plugin Manifest | https://www.figma.com/plugin-docs/manifest |
+| Quickstart Guide | https://www.figma.com/plugin-docs/plugin-quickstart-guide |
+| Node Types | https://www.figma.com/plugin-docs/api/nodes |
+| TypeScript Support | https://www.figma.com/plugin-docs/typescript/ |
+
+When suggesting code that uses the Figma Plugin API:
+- Verify method signatures and properties against the API reference
+- Use the correct node types as documented under Node Types
+- Ensure `manifest.json` fields comply with the Plugin Manifest spec
+- Leverage TypeScript typings as described in the TypeScript support page

@@ -12,9 +12,10 @@ figma.ui.onmessage = async (msg) => {
 
       case "MIRROR_AND_TRANSLATE": {
         const { nodeIds, convertNumerals } = msg;
-        const nodes = nodeIds
-          .map((id: string) => figma.getNodeById(id))
-          .filter((n: BaseNode | null): n is SceneNode => n !== null);
+        const resolved = await Promise.all(
+          (nodeIds as string[]).map((id: string) => figma.getNodeByIdAsync(id))
+        );
+        const nodes = resolved.filter((n): n is SceneNode => n !== null);
 
         if (nodes.length === 0) {
           figma.ui.postMessage({ type: "ERROR", message: "No valid layers selected." });
@@ -74,7 +75,7 @@ figma.ui.onmessage = async (msg) => {
 
       case "CREATE_VARIANT": {
         const { nodeId, convertNumerals } = msg;
-        const node = figma.getNodeById(nodeId);
+        const node = await figma.getNodeByIdAsync(nodeId);
 
         if (!node || (node.type !== "COMPONENT" && node.type !== "COMPONENT_SET")) {
           figma.ui.postMessage({
@@ -143,10 +144,10 @@ figma.ui.onmessage = async (msg) => {
 
         let updatedCount = 0;
         for (const { id, text } of translations) {
-          const node = figma.getNodeById(id);
+          const node = await figma.getNodeByIdAsync(id);
           if (!node || node.type !== "TEXT") continue;
           try {
-            await figma.loadFontAsync(node.fontName as FontName);
+            await loadAllFontsForTextNode(node);
             node.characters = convertNumerals ? toEasternArabic(text) : text;
             node.textAlignHorizontal = "RIGHT";
             updatedCount++;
@@ -164,9 +165,10 @@ figma.ui.onmessage = async (msg) => {
 
       case "GET_FONTS": {
         const { nodeIds } = msg;
-        const nodes = (nodeIds as string[])
-          .map(id => figma.getNodeById(id))
-          .filter((n): n is SceneNode => n !== null);
+        const resolvedFonts = await Promise.all(
+          (nodeIds as string[]).map(id => figma.getNodeByIdAsync(id))
+        );
+        const nodes = resolvedFonts.filter((n): n is SceneNode => n !== null);
 
         const families = new Set<string>();
         for (const node of nodes) collectFontFamilies(node, families);
@@ -180,9 +182,10 @@ figma.ui.onmessage = async (msg) => {
           nodeIds: string[];
           mappings: { from: string; to: string }[];
         };
-        const nodes = (nodeIds as string[])
-          .map(id => figma.getNodeById(id))
-          .filter((n): n is SceneNode => n !== null);
+        const resolvedApply = await Promise.all(
+          (nodeIds as string[]).map(id => figma.getNodeByIdAsync(id))
+        );
+        const nodes = resolvedApply.filter((n): n is SceneNode => n !== null);
 
         let updatedCount = 0;
         for (const node of nodes) {
@@ -197,7 +200,7 @@ figma.ui.onmessage = async (msg) => {
       }
 
       case "LOCK_FLIP": {
-        const node = figma.getNodeById(msg.nodeId);
+        const node = await figma.getNodeByIdAsync(msg.nodeId);
         if (!node) return;
         if (!node.name.includes("[no-flip]")) node.name += " [no-flip]";
         figma.ui.postMessage({ type: "DONE", message: `"${node.name}" locked from flipping.` });
@@ -205,7 +208,7 @@ figma.ui.onmessage = async (msg) => {
       }
 
       case "UNLOCK_FLIP": {
-        const node = figma.getNodeById(msg.nodeId);
+        const node = await figma.getNodeByIdAsync(msg.nodeId);
         if (!node) return;
         node.name = node.name.replace(/\s*\[no-flip\]/g, "");
         figma.ui.postMessage({ type: "DONE", message: `"${node.name}" unlocked.` });
@@ -301,11 +304,16 @@ async function mirrorNode(
     }
   }
 
-  // 3. Flip text alignment
+  // 3. Flip text alignment (requires font to be loaded)
   if (node.type === "TEXT") {
     const text = node as TextNode;
-    if (text.textAlignHorizontal === "LEFT") text.textAlignHorizontal = "RIGHT";
-    else if (text.textAlignHorizontal === "RIGHT") text.textAlignHorizontal = "LEFT";
+    try {
+      await loadAllFontsForTextNode(text);
+      if (text.textAlignHorizontal === "LEFT") text.textAlignHorizontal = "RIGHT";
+      else if (text.textAlignHorizontal === "RIGHT") text.textAlignHorizontal = "LEFT";
+    } catch {
+      // Font unavailable — skip alignment flip for this node
+    }
   }
 
   // 4. Flip border radius corners (top-left ↔ top-right, bottom-left ↔ bottom-right)
@@ -429,6 +437,20 @@ async function applyFontMapping(
   return count;
 }
 
+async function loadAllFontsForTextNode(node: TextNode): Promise<void> {
+  const fontName = node.fontName;
+  if (fontName === figma.mixed) {
+    const unique = new Map<string, FontName>();
+    for (let i = 0; i < node.characters.length; i++) {
+      const f = node.getRangeFontName(i, i + 1) as FontName;
+      unique.set(`${f.family}::${f.style}`, f);
+    }
+    await Promise.all(Array.from(unique.values()).map(f => figma.loadFontAsync(f)));
+  } else {
+    await figma.loadFontAsync(fontName);
+  }
+}
+
 function collectTextLayers(node: SceneNode, result: { id: string; text: string }[]): void {
   if (node.name.includes("[no-flip]") || node.name.includes("[logo]")) return;
   if (node.type === "TEXT" && node.characters.trim().length > 0)
@@ -437,10 +459,6 @@ function collectTextLayers(node: SceneNode, result: { id: string; text: string }
     for (const child of (node as ChildrenMixin).children)
       collectTextLayers(child as SceneNode, result);
   }
-}
-
-function getNodeWidth(node: BaseNode): number {
-  return "width" in node ? (node as LayoutMixin).width : 0;
 }
 
 function hasImageFill(node: SceneNode): boolean {

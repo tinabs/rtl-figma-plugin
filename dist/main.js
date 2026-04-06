@@ -18,9 +18,8 @@ figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
         switch (msg.type) {
             case "MIRROR_AND_TRANSLATE": {
                 const { nodeIds, convertNumerals } = msg;
-                const nodes = nodeIds
-                    .map((id) => figma.getNodeById(id))
-                    .filter((n) => n !== null);
+                const resolved = yield Promise.all(nodeIds.map((id) => figma.getNodeByIdAsync(id)));
+                const nodes = resolved.filter((n) => n !== null);
                 if (nodes.length === 0) {
                     figma.ui.postMessage({ type: "ERROR", message: "No valid layers selected." });
                     return;
@@ -73,7 +72,7 @@ figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
             }
             case "CREATE_VARIANT": {
                 const { nodeId, convertNumerals } = msg;
-                const node = figma.getNodeById(nodeId);
+                const node = yield figma.getNodeByIdAsync(nodeId);
                 if (!node || (node.type !== "COMPONENT" && node.type !== "COMPONENT_SET")) {
                     figma.ui.postMessage({
                         type: "ERROR",
@@ -128,11 +127,11 @@ figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
                 const { translations, convertNumerals } = msg;
                 let updatedCount = 0;
                 for (const { id, text } of translations) {
-                    const node = figma.getNodeById(id);
+                    const node = yield figma.getNodeByIdAsync(id);
                     if (!node || node.type !== "TEXT")
                         continue;
                     try {
-                        yield figma.loadFontAsync(node.fontName);
+                        yield loadAllFontsForTextNode(node);
                         node.characters = convertNumerals ? toEasternArabic(text) : text;
                         node.textAlignHorizontal = "RIGHT";
                         updatedCount++;
@@ -149,9 +148,8 @@ figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
             }
             case "GET_FONTS": {
                 const { nodeIds } = msg;
-                const nodes = nodeIds
-                    .map(id => figma.getNodeById(id))
-                    .filter((n) => n !== null);
+                const resolvedFonts = yield Promise.all(nodeIds.map(id => figma.getNodeByIdAsync(id)));
+                const nodes = resolvedFonts.filter((n) => n !== null);
                 const families = new Set();
                 for (const node of nodes)
                     collectFontFamilies(node, families);
@@ -160,9 +158,8 @@ figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
             }
             case "APPLY_FONTS": {
                 const { nodeIds, mappings } = msg;
-                const nodes = nodeIds
-                    .map(id => figma.getNodeById(id))
-                    .filter((n) => n !== null);
+                const resolvedApply = yield Promise.all(nodeIds.map(id => figma.getNodeByIdAsync(id)));
+                const nodes = resolvedApply.filter((n) => n !== null);
                 let updatedCount = 0;
                 for (const node of nodes) {
                     updatedCount += yield applyFontMapping(node, mappings);
@@ -174,7 +171,7 @@ figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
                 break;
             }
             case "LOCK_FLIP": {
-                const node = figma.getNodeById(msg.nodeId);
+                const node = yield figma.getNodeByIdAsync(msg.nodeId);
                 if (!node)
                     return;
                 if (!node.name.includes("[no-flip]"))
@@ -183,7 +180,7 @@ figma.ui.onmessage = (msg) => __awaiter(void 0, void 0, void 0, function* () {
                 break;
             }
             case "UNLOCK_FLIP": {
-                const node = figma.getNodeById(msg.nodeId);
+                const node = yield figma.getNodeByIdAsync(msg.nodeId);
                 if (!node)
                     return;
                 node.name = node.name.replace(/\s*\[no-flip\]/g, "");
@@ -273,13 +270,19 @@ function mirrorNode(node_1, parentWidth_1) {
                 frame.paddingRight = tmp;
             }
         }
-        // 3. Flip text alignment
+        // 3. Flip text alignment (requires font to be loaded)
         if (node.type === "TEXT") {
             const text = node;
-            if (text.textAlignHorizontal === "LEFT")
-                text.textAlignHorizontal = "RIGHT";
-            else if (text.textAlignHorizontal === "RIGHT")
-                text.textAlignHorizontal = "LEFT";
+            try {
+                yield loadAllFontsForTextNode(text);
+                if (text.textAlignHorizontal === "LEFT")
+                    text.textAlignHorizontal = "RIGHT";
+                else if (text.textAlignHorizontal === "RIGHT")
+                    text.textAlignHorizontal = "LEFT";
+            }
+            catch (_b) {
+                // Font unavailable — skip alignment flip for this node
+            }
         }
         // 4. Flip border radius corners (top-left ↔ top-right, bottom-left ↔ bottom-right)
         if ("topLeftRadius" in node) {
@@ -393,6 +396,22 @@ function applyFontMapping(node, mappings) {
         return count;
     });
 }
+function loadAllFontsForTextNode(node) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const fontName = node.fontName;
+        if (fontName === figma.mixed) {
+            const unique = new Map();
+            for (let i = 0; i < node.characters.length; i++) {
+                const f = node.getRangeFontName(i, i + 1);
+                unique.set(`${f.family}::${f.style}`, f);
+            }
+            yield Promise.all(Array.from(unique.values()).map(f => figma.loadFontAsync(f)));
+        }
+        else {
+            yield figma.loadFontAsync(fontName);
+        }
+    });
+}
 function collectTextLayers(node, result) {
     if (node.name.includes("[no-flip]") || node.name.includes("[logo]"))
         return;
@@ -402,9 +421,6 @@ function collectTextLayers(node, result) {
         for (const child of node.children)
             collectTextLayers(child, result);
     }
-}
-function getNodeWidth(node) {
-    return "width" in node ? node.width : 0;
 }
 function hasImageFill(node) {
     if (!("fills" in node))
