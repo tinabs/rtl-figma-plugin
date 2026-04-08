@@ -407,34 +407,38 @@ npx tsc --watch
 
 ## 9. Development Phases (1-Week Plan)
 
-### Day 1 — Scaffold & Mirror
+### Day 1 — Scaffold & Mirror ✅ DONE
 - Set up project structure, TypeScript, manifest
-- Build the basic plugin UI shell (tabs, buttons)
-- Implement Feature 1: Mirror & Convert (core logic)
-- Test with simple frames
+- Built plugin UI shell: header, tab bar (Mirror / Fonts / Settings), status bar
+- Implemented Feature 1: Mirror & Convert (core logic)
+- Tested with simple frames
 
-### Day 2 — Mirror Polish + Variant Generator
-- Handle edge cases: nested components, no Auto Layout
-- Implement Feature 2: RTL Variant Generator
-- Test with real component sets from your team
+### Day 2 — Mirror Polish + Variant Generator ✅ DONE
+- Added safe async font loading (`preloadFonts`) — avoids crash on `insertChild` with unloaded fonts
+- Added font failure tracking: warns user which fonts are missing, skips those frames for reordering
+- Skips image-filled rectangles, vectors, ellipses, stars, polygons from mirroring
+- Correctly handles AL vs. non-AL children for absolute position flip
+- Added stroke weight swap (left ↔ right) — not in original spec but needed
+- Implemented Feature 2: RTL Variant Generator (clone → mirror → name → add to set)
+- Refactored to use async Figma node API (`getNodeByIdAsync`)
+- Merged via PR #1 from `day2-plugin` into `main`
 
-### Day 3 — Translation + Numerals
-- Implement translation via MyMemory API (no key, called from ui.html)
-- Wire translation into Mirror and Create RTL Variant flows
-- Implement numeral conversion toggle (OFF by default)
-- Test with real UI copy
+### Day 3 — Translation + Numerals ✅ DONE (shipped with Day 2)
+- Translation via MyMemory API wired into Mirror and Create RTL Variant flows
+- Progress bar in UI during translation
+- Skips all-caps short strings (labels/codes)
+- Numeral conversion toggle (OFF by default) applied after translation
 
-### Day 4 — Fonts + Numerals
-- Implement Feature 4: Bulk Font Switcher
-- Implement numeral conversion toggle
-- Test end-to-end workflow
+### Day 4 — Fonts + Numerals ✅ DONE (shipped with Day 2)
+- Bulk Font Switcher: scan selection → dropdown per font → apply
+- Font style fallback: tries same style first, then Regular, then Bold
+- Numeral conversion fully wired end-to-end
 
-### Day 5 — No-Flip Locking + UI Polish
-- Implement Feature 5: Lock from Flip
-- Polish the UI: spacing, icons, status messages, error states
-- Handle all error cases gracefully
+### Day 5 — No-Flip Locking + UI Polish ✅ DONE (shipped with Day 2)
+- Lock from Flip / Unlock buttons in Mirror tab
+- Full UI polish: progress bar, color-coded status bar, disabled states, settings panel
 
-### Day 6 — Real File Testing
+### Day 6 — Real File Testing ⬅ CURRENT
 - Load actual project files from your team
 - Test all features together
 - Fix bugs, edge cases
@@ -525,5 +529,5 @@ Copy and paste this exactly when you open Claude Code for the first time:
 
 ---
 
-*Blueprint version 1.1 — Updated: MyMemory translation, simplified Mirror tab, no API key required for V1*
+*Blueprint version 1.2 — Updated 2026-04-07: Days 1–5 complete, all 5 features shipped. Currently on Day 6 (real file testing). Branch: main (merged from day2-plugin via PR #1).*
 *Plugin name shortlist: Qalb · Maqlub · Wijha*
